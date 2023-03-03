@@ -19,15 +19,26 @@ const char* outTemperature = "/sensor/temperature";
 char temperatureData [50];
 const char* outHumidity = "/sensor/humidity";
 char humidityData [50];
+const char* outVOC = "/sensor/VOC";
+char vocData [50];
 const char* outFilling = "/sensor/fillingLevel";
 char fillingData [50];
+const char* outCriticalWarning = "/limits/warning";
+char criticalWarningData [1];
 
 long last_time;
 long now;
 
+//Sensor measurement variables
 float sensorTemperature;
 float sensorHumidity;
+float sensorVOC;
 int sensorFillingLevel;
+
+//Limits
+float limitHumidity = 50;
+float limitVOC = 3000;
+boolean criticalWarning = false;
 
 //WiFi connect function
 void connectWiFi(){
@@ -90,6 +101,22 @@ void publishFillingLevel(int fillingLevel){
     mqttClient.publish(outFilling, fillingData);
 }
 
+//Publish VOC data to MQTT
+void publishVOC(float VOC){
+    snprintf(vocData, sizeof(vocData), "%f", VOC);
+    Serial.print("Sending VOC: ");
+    Serial.println(vocData);
+    mqttClient.publish(outVOC, vocData);
+}
+
+//Publish critical warning to MQTT
+void publishCriticalWarning(boolean warning){
+    sprintf(criticalWarningData, "%i", warning);
+    Serial.print("Sending critical warning: ");
+    Serial.println(criticalWarningData);
+    mqttClient.publish(outCriticalWarning, criticalWarningData);
+}
+
 void setup() {
   Serial.begin(115200);
  
@@ -116,12 +143,24 @@ void loop() {
   now = millis();
   if (now - last_time > 5000)
   {
-      sensorTemperature = random(30.0); //max. Wert random Funktion 30
-      sensorHumidity = random(70.0); //max. Wert random Funktion 70
+      sensorTemperature = 1.353456836 * random(30.0); //max. Wert random Funktion 30 factor 1.353456836 for float generation, random only creates integer
+      sensorHumidity = 1.353456836 * random(70.0); //max. Wert random Funktion 70
+      sensorVOC = 1.68364967 * random(2000.0);
       sensorFillingLevel = random(100.0); 
       publishTemperature(sensorTemperature);
       publishHumidity(sensorHumidity);
+      publishVOC(sensorVOC);
       publishFillingLevel(sensorFillingLevel);
+
+      if(sensorHumidity > limitHumidity || sensorVOC > limitVOC){
+        criticalWarning = true;
+        publishCriticalWarning(criticalWarning);
+      }
+      else{
+        criticalWarning = false;
+        publishCriticalWarning(criticalWarning);
+      }
+
       last_time = now;
   }
   
