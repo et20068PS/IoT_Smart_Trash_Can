@@ -2,28 +2,54 @@
 #include <WiFi.h>
 #include <PubSubClient.h> 
 
-//WiFi connection
+//WiFi connection variables
 const char* ssid = "LenovoPS";
 const char* password =  "#Lu89832";
 
-//MQTT client
+//MQTT client variables
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient); 
 const char* mqttServer = "broker.hivemq.com";
 int mqttPort = 1883;
 const char* mqttUser = "et20068@lehre.dhbw-stuttgart.de";
 const char* mqttPassword = "IoT_MQTT!_2023";
-const char* inTopic = "/swa/commands";
-const char* outTopic = "/swa/testdaten";
+const char* inTopic1 = "/swa/commands";
+const char* inTopic2 = "/swa/info";
+const char* outTemperature = "/sensor/temperature";
+char temperatureData [50];
+const char* outHumidity = "/sensor/humidity";
+char humidityData [50];
 
 long last_time;
 long now;
-char data [50];
 
-int count = 0;
-char messages [50];
-int Testpin = 4;
 
+//WiFi connect function
+void connectWiFi(){
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi..");
+  }
+  Serial.println("Connected to the WiFi network");
+}
+
+//MQTT connect function
+void connectMQTT() {
+  Serial.println("Connecting to MQTT Broker...");
+  while (!mqttClient.connected()) {
+      Serial.println("Reconnecting to MQTT Broker..");
+      String clientId = "ESP32Client-";
+      clientId += String(random(0xffff), HEX);
+      
+      if (mqttClient.connect(clientId.c_str(), mqttUser, mqttPassword)) {
+        Serial.println("Connected.");
+        mqttClient.subscribe(inTopic1);
+        mqttClient.subscribe(inTopic2);
+      }  
+  }
+}
+
+//Callback function for receiving MQTT data
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Received message from topic: ");
   Serial.print(topic);
@@ -35,62 +61,50 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println();
 }
 
+//Publish temperature sensor data to MQTT
+void publishTemperature(float temperature){
+    snprintf(temperatureData, sizeof(temperatureData), "%f °C", temperature);
+    Serial.print("Sending temperature: ");
+    Serial.println(temperatureData);
+    mqttClient.publish(outTemperature, temperatureData);
+}
+
+//Publish humidity sensor data to MQTT
+void publishHumidity(float humidity){
+    snprintf(humidityData, sizeof(humidityData), "%f %", humidity);
+    Serial.print("Sending humidity: ");
+    Serial.println(humidityData);
+    mqttClient.publish(outHumidity, humidityData);
+}
+
 void setup() {
   Serial.begin(115200);
  
   //WiFi Setup
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Connecting to WiFi..");
-  }
-  Serial.println("Connected to the WiFi network");
 
   //MQTT client
   mqttClient.setServer(mqttServer, mqttPort);
   mqttClient.setCallback(callback);
-
-  pinMode(Testpin, INPUT);
-}
-
-void reconnect() {
-  Serial.println("Connecting to MQTT Broker...");
-  while (!mqttClient.connected()) {
-      Serial.println("Reconnecting to MQTT Broker..");
-      String clientId = "ESP32Client-";
-      clientId += String(random(0xffff), HEX);
-      
-      if (mqttClient.connect(clientId.c_str(), mqttUser, mqttPassword)) {
-        Serial.println("Connected.");
-        // subscribe to topic
-        mqttClient.subscribe(inTopic);
-      }
-      
-  }
 }
 
 void loop() {
 
+  if (!WiFi.isConnected()){
+    connectWiFi();
+  }
 
-  if (!mqttClient.connected())
-  reconnect();
+  if (!mqttClient.connected()){
+    connectMQTT();
+  }
+
   mqttClient.loop();
 
   now = millis();
   if (now - last_time > 5000)
   {
-      boolean Testsignal = digitalRead(Testpin);
-
-      sprintf(data, "%i", Testsignal);
-      Serial.println(Testsignal);
-      mqttClient.publish(outTopic, data);
-
-      count++;
-      snprintf(messages, 75, "%ld", count);
-      Serial.print("Sending messages: ");
-      Serial.println(messages);
-      mqttClient.publish(outTopic, messages);
-
+      publishTemperature(21.14);
+      publishHumidity(62.7);
       last_time = now;
   }
   
