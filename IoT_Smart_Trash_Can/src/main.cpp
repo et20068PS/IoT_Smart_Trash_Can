@@ -19,10 +19,15 @@ const char* outTemperature = "/sensor/temperature";
 char temperatureData [50];
 const char* outHumidity = "/sensor/humidity";
 char humidityData [50];
+const char* outFilling = "/sensor/fillingLevel";
+char fillingData [50];
 
 long last_time;
 long now;
 
+float sensorTemperature;
+float sensorHumidity;
+int sensorFillingLevel;
 
 //WiFi connect function
 void connectWiFi(){
@@ -77,6 +82,14 @@ void publishHumidity(float humidity){
     mqttClient.publish(outHumidity, humidityData);
 }
 
+//Publish filling level data to MQTT
+void publishFillingLevel(int fillingLevel){
+    snprintf(fillingData, sizeof(fillingData), "%d %", fillingLevel);
+    Serial.print("Sending filling level: ");
+    Serial.println(fillingData);
+    mqttClient.publish(outFilling, fillingData);
+}
+
 void setup() {
   Serial.begin(115200);
  
@@ -103,8 +116,12 @@ void loop() {
   now = millis();
   if (now - last_time > 5000)
   {
-      publishTemperature(21.14);
-      publishHumidity(62.7);
+      sensorTemperature = random(30.0); //max. Wert random Funktion 30
+      sensorHumidity = random(70.0); //max. Wert random Funktion 70
+      sensorFillingLevel = random(100.0); 
+      publishTemperature(sensorTemperature);
+      publishHumidity(sensorHumidity);
+      publishFillingLevel(sensorFillingLevel);
       last_time = now;
   }
   
