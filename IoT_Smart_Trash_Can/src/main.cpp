@@ -5,6 +5,7 @@
 //#include <Adafruit_MQTT.h>
 //#include <Adafruit_MQTT_Client.h>
 #include <AdafruitIO_WiFi.h>
+#include <AdafruitIO_Feed.h>
 #define AIO_USERNAME  "SmartTrashCan"
 #define AIO_KEY       "aio_UJVn26FOOOAQZAqOZlDbZWO54NXE"
 #define AIO_SERVER      "io.adafruit.com"
@@ -43,6 +44,7 @@ long now;
 //Adafruit_MQTT_Publish fillingLevelAdafruit = Adafruit_MQTT_Publish(&mqttAdafruit, AIO_USERNAME "/feeds/sensor/fillingLevel");
 AdafruitIO_WiFi io(AIO_USERNAME, AIO_KEY, ssid, password);
 AdafruitIO_Feed *fillingLevelAda = io.feed("fillingLevel");
+AdafruitIO_Feed *toggleSwitch = io.feed("toggleSwitch");
 
 //Sensor measurement variables
 float sensorTemperature;
@@ -145,6 +147,10 @@ void connectMQTTAdafruit(){
   }
 }
 */
+void handleFeedData(AdafruitIO_Data *data) {
+  Serial.println("Received feed data:");
+  Serial.println(data->value());
+}
 
 void setup() {
   Serial.begin(115200);
@@ -176,6 +182,8 @@ void setup() {
   //MQTT client
   //mqttClient.setServer(mqttServer, mqttPort);
   //mqttClient.setCallback(callback);
+  toggleSwitch->onMessage(handleFeedData);
+  toggleSwitch->get();
 }
 
 void loop() {
