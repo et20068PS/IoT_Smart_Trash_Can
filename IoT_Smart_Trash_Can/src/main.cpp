@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include <PubSubClient.h> 
+//#include <PubSubClient.h> 
 
 #include <Adafruit_MQTT.h>
 #include <Adafruit_MQTT_Client.h>
@@ -15,6 +15,8 @@ const char* password =  "#Lu89832";
 
 //MQTT client variables
 WiFiClient wifiClient;
+
+/*
 PubSubClient mqttClient(wifiClient); 
 const char* mqttServer = "broker.hivemq.com";
 int mqttPort = 1883;
@@ -32,7 +34,7 @@ const char* outFilling = "/sensor/fillingLevel";
 char fillingData [50];
 const char* outCriticalWarning = "/limits/warning";
 char criticalWarningData [1];
-
+*/
 long last_time;
 long now;
 
@@ -59,6 +61,7 @@ void connectWiFi(){
   Serial.println("Connected to the WiFi network");
 }
 
+/*
 //MQTT connect function
 void connectMQTT() {
   Serial.println("Connecting to MQTT Broker...");
@@ -126,7 +129,7 @@ void publishCriticalWarning(boolean warning){
     Serial.println(criticalWarningData);
     mqttClient.publish(outCriticalWarning, criticalWarningData);
 }
-
+*/
 
 /*
 //Adafruit MQTT connect function
@@ -151,8 +154,8 @@ void setup() {
   Serial.println("Dein Vadder");
 
   //MQTT client
-  mqttClient.setServer(mqttServer, mqttPort);
-  mqttClient.setCallback(callback);
+  //mqttClient.setServer(mqttServer, mqttPort);
+  //mqttClient.setCallback(callback);
 }
 
 void loop() {
@@ -161,15 +164,15 @@ void loop() {
     connectWiFi();
   }
 
-  if (!mqttClient.connected()){
-    connectMQTT();
-  }
+  //if (!mqttClient.connected()){
+   // connectMQTT();
+  //}
   //For Adafruit IO connection
   //if (!mqttAdafruit.connected()){
     //connectMQTTAdafruit();
   //}
 
-  mqttClient.loop();
+  //mqttClient.loop();
 
   now = millis();
   if (now - last_time > 5000)
@@ -178,6 +181,7 @@ void loop() {
       sensorHumidity = 1.353456836 * random(70.0); //max. Wert random Funktion 70
       sensorVOC = 1.68364967 * random(2000.0);
       sensorFillingLevel = random(100.0); 
+      /*
       publishTemperature(sensorTemperature);
       publishHumidity(sensorHumidity);
       publishVOC(sensorVOC);
@@ -191,7 +195,7 @@ void loop() {
         criticalWarning = false;
         publishCriticalWarning(criticalWarning);
       }
-
+*/
 
       fillingLevelAdafruit.publish(sensorFillingLevel);
 
