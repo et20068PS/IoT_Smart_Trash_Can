@@ -2,6 +2,13 @@
 #include <WiFi.h>
 #include <PubSubClient.h> 
 
+#include <Adafruit_MQTT.h>
+#include <Adafruit_MQTT_Client.h>
+#define AIO_USERNAME  "SmartTrashCan"
+#define AIO_KEY       "aio_UJVn26FOOOAQZAqOZlDbZWO54NXE"
+#define AIO_SERVER      "io.adafruit.com"
+#define AIO_SERVERPORT  1883
+
 //WiFi connection variables
 const char* ssid = "LenovoPS";
 const char* password =  "#Lu89832";
@@ -28,6 +35,9 @@ char criticalWarningData [1];
 
 long last_time;
 long now;
+
+Adafruit_MQTT_Client mqttAdafruit(&wifiClient, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
+Adafruit_MQTT_Publish fillingLevelAdafruit = Adafruit_MQTT_Publish(&mqttAdafruit, AIO_USERNAME "/feeds/sensor/fillingLevel");
 
 //Sensor measurement variables
 float sensorTemperature;
@@ -117,16 +127,8 @@ void publishCriticalWarning(boolean warning){
     mqttClient.publish(outCriticalWarning, criticalWarningData);
 }
 
-//Adafruit IO 
-#include <Adafruit_MQTT.h>
-#include <Adafruit_MQTT_Client.h>
-#define AIO_USERNAME  "SmartTrashCan"
-#define AIO_KEY       "aio_UJVn26FOOOAQZAqOZlDbZWO54NXE"
-#define AIO_SERVER      "io.adafruit.com"
-#define AIO_SERVERPORT  1883
-Adafruit_MQTT_Client mqttAdafruit(&wifiClient, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
-Adafruit_MQTT_Publish fillingLevelAdafruit = Adafruit_MQTT_Publish(&mqttAdafruit, AIO_USERNAME "SmartTrashCan/feeds/slash-sensor-slash-fillinglevel");
 
+/*
 //Adafruit MQTT connect function
 void connectMQTTAdafruit(){
     mqttAdafruit.connect();
@@ -136,12 +138,17 @@ void connectMQTTAdafruit(){
     Serial.println("Failed to connect to Adafruit IO-MQTT broker!");
   }
 }
+*/
 
 void setup() {
   Serial.begin(115200);
  
   //WiFi Setup
   WiFi.begin(ssid, password);
+
+  Serial.println("Deine Mudda");
+  mqttAdafruit.connect();
+  Serial.println("Dein Vadder");
 
   //MQTT client
   mqttClient.setServer(mqttServer, mqttPort);
@@ -158,9 +165,9 @@ void loop() {
     connectMQTT();
   }
   //For Adafruit IO connection
-  if (!mqttAdafruit.connected()){
-    connectMQTTAdafruit();
-  }
+  //if (!mqttAdafruit.connected()){
+    //connectMQTTAdafruit();
+  //}
 
   mqttClient.loop();
 
