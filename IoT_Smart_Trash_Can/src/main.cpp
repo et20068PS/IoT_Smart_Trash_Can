@@ -2,8 +2,9 @@
 #include <WiFi.h>
 //#include <PubSubClient.h> 
 
-#include <Adafruit_MQTT.h>
-#include <Adafruit_MQTT_Client.h>
+//#include <Adafruit_MQTT.h>
+//#include <Adafruit_MQTT_Client.h>
+#include <AdafruitIO_WiFi.h>
 #define AIO_USERNAME  "SmartTrashCan"
 #define AIO_KEY       "aio_UJVn26FOOOAQZAqOZlDbZWO54NXE"
 #define AIO_SERVER      "io.adafruit.com"
@@ -38,8 +39,10 @@ char criticalWarningData [1];
 long last_time;
 long now;
 
-Adafruit_MQTT_Client mqttAdafruit(&wifiClient, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
-Adafruit_MQTT_Publish fillingLevelAdafruit = Adafruit_MQTT_Publish(&mqttAdafruit, AIO_USERNAME "/feeds/sensor/fillingLevel");
+//Adafruit_MQTT_Client mqttAdafruit(&wifiClient, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
+//Adafruit_MQTT_Publish fillingLevelAdafruit = Adafruit_MQTT_Publish(&mqttAdafruit, AIO_USERNAME "/feeds/sensor/fillingLevel");
+AdafruitIO_WiFi io(AIO_USERNAME, AIO_KEY, ssid, password);
+AdafruitIO_Feed *fillingLevelAda = io.feed("fillingLevel");
 
 //Sensor measurement variables
 float sensorTemperature;
@@ -148,10 +151,27 @@ void setup() {
  
   //WiFi Setup
   WiFi.begin(ssid, password);
+  connectWiFi();
 
-  Serial.println("Deine Mudda");
-  mqttAdafruit.connect();
-  Serial.println("Dein Vadder");
+  Serial.print("Connecting to Adafruit IO");
+  io.connect();
+
+    // set up a message handler for the count feed.
+  // the handleMessage function (defined below)
+  // will be called whenever a message is
+  // received from adafruit io.
+
+    // wait for a connection
+  while(io.status() < AIO_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+  // we are connected
+  Serial.println();
+  Serial.println(io.statusText());
+  //Serial.println("Deine Mudda");
+  //mqttAdafruit.connect();
+  //Serial.println("Dein Vadder");
 
   //MQTT client
   //mqttClient.setServer(mqttServer, mqttPort);
@@ -163,7 +183,7 @@ void loop() {
   if (!WiFi.isConnected()){
     connectWiFi();
   }
-
+  io.run();
   //if (!mqttClient.connected()){
    // connectMQTT();
   //}
@@ -173,7 +193,7 @@ void loop() {
   //}
 
   //mqttClient.loop();
-
+  
   now = millis();
   if (now - last_time > 5000)
   {
@@ -196,8 +216,8 @@ void loop() {
         publishCriticalWarning(criticalWarning);
       }
 */
-
-      fillingLevelAdafruit.publish(sensorFillingLevel);
+      //fillingLevelAdafruit.publish(sensorFillingLevel);
+      fillingLevelAda->save(sensorFillingLevel);
 
       last_time = now;
   }
