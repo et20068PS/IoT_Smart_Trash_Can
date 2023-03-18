@@ -117,6 +117,26 @@ void publishCriticalWarning(boolean warning){
     mqttClient.publish(outCriticalWarning, criticalWarningData);
 }
 
+//Adafruit IO 
+#include <Adafruit_MQTT.h>
+#include <Adafruit_MQTT_Client.h>
+#define AIO_USERNAME  "SmartTrashCan"
+#define AIO_KEY       "aio_UJVn26FOOOAQZAqOZlDbZWO54NXE"
+#define AIO_SERVER      "io.adafruit.com"
+#define AIO_SERVERPORT  1883
+Adafruit_MQTT_Client mqttAdafruit(&wifiClient, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
+Adafruit_MQTT_Publish fillingLevelAdafruit = Adafruit_MQTT_Publish(&mqttAdafruit, AIO_USERNAME "SmartTrashCan/feeds/slash-sensor-slash-fillinglevel");
+
+//Adafruit MQTT connect function
+void connectMQTTAdafruit(){
+    mqttAdafruit.connect();
+  if (mqttAdafruit.connected()) {
+    Serial.println("Connected to Adafruit IO-MQTT broker!");
+  } else {
+    Serial.println("Failed to connect to Adafruit IO-MQTT broker!");
+  }
+}
+
 void setup() {
   Serial.begin(115200);
  
@@ -136,6 +156,10 @@ void loop() {
 
   if (!mqttClient.connected()){
     connectMQTT();
+  }
+  //For Adafruit IO connection
+  if (!mqttAdafruit.connected()){
+    connectMQTTAdafruit();
   }
 
   mqttClient.loop();
@@ -160,6 +184,9 @@ void loop() {
         criticalWarning = false;
         publishCriticalWarning(criticalWarning);
       }
+
+
+      fillingLevelAdafruit.publish(sensorFillingLevel);
 
       last_time = now;
   }
