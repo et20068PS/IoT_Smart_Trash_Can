@@ -1,9 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
-//#include <PubSubClient.h> 
 
-//#include <Adafruit_MQTT.h>
-//#include <Adafruit_MQTT_Client.h>
 #include <AdafruitIO_WiFi.h>
 #include <AdafruitIO_Feed.h>
 #define AIO_USERNAME  "SmartTrashCan"
@@ -18,33 +15,14 @@ const char* password =  "#Lu89832";
 //MQTT client variables
 WiFiClient wifiClient;
 
-/*
-PubSubClient mqttClient(wifiClient); 
-const char* mqttServer = "broker.hivemq.com";
-int mqttPort = 1883;
-const char* mqttUser = "et20068@lehre.dhbw-stuttgart.de";
-const char* mqttPassword = "IoT_MQTT!_2023";
-const char* inTopic1 = "/swa/commands";
-const char* inTopic2 = "/swa/info";
-const char* outTemperature = "/sensor/temperature";
-char temperatureData [50];
-const char* outHumidity = "/sensor/humidity";
-char humidityData [50];
-const char* outVOC = "/sensor/VOC";
-char vocData [50];
-const char* outFilling = "/sensor/fillingLevel";
-char fillingData [50];
-const char* outCriticalWarning = "/limits/warning";
-char criticalWarningData [1];
-*/
 long last_time;
 long now;
 
-//Adafruit_MQTT_Client mqttAdafruit(&wifiClient, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
-//Adafruit_MQTT_Publish fillingLevelAdafruit = Adafruit_MQTT_Publish(&mqttAdafruit, AIO_USERNAME "/feeds/sensor/fillingLevel");
 AdafruitIO_WiFi io(AIO_USERNAME, AIO_KEY, ssid, password);
-AdafruitIO_Feed *fillingLevelAda = io.feed("fillingLevel");
-AdafruitIO_Feed *toggleSwitch = io.feed("toggleSwitch");
+AdafruitIO_Feed *dataFillingLevel = io.feed("fillingLevel");
+AdafruitIO_Feed *dataHumidity = io.feed("humidity");
+AdafruitIO_Feed *dataTemperature = io.feed("temperature");
+AdafruitIO_Feed *dataVOC = io.feed("VOC");
 
 //Sensor measurement variables
 float sensorTemperature;
@@ -66,87 +44,7 @@ void connectWiFi(){
   Serial.println("Connected to the WiFi network");
 }
 
-/*
-//MQTT connect function
-void connectMQTT() {
-  Serial.println("Connecting to MQTT Broker...");
-  while (!mqttClient.connected()) {
-      Serial.println("Reconnecting to MQTT Broker..");
-      String clientId = "ESP32Client-";
-      clientId += String(random(0xffff), HEX);
-      
-      if (mqttClient.connect(clientId.c_str(), mqttUser, mqttPassword)) {
-        Serial.println("Connected.");
-        mqttClient.subscribe(inTopic1);
-        mqttClient.subscribe(inTopic2);
-      }  
-  }
-}
 
-//Callback function for receiving MQTT data
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Received message from topic: ");
-  Serial.print(topic);
-  Serial.print("; message: ");
-  
-  for (int i = 0; i < length; i++) {
-    Serial.print((char) payload[i]);
-  }
-  Serial.println();
-}
-
-//Publish temperature sensor data to MQTT
-void publishTemperature(float temperature){
-    snprintf(temperatureData, sizeof(temperatureData), "%f °C", temperature);
-    Serial.print("Sending temperature: ");
-    Serial.println(temperatureData);
-    mqttClient.publish(outTemperature, temperatureData);
-}
-
-//Publish humidity sensor data to MQTT
-void publishHumidity(float humidity){
-    snprintf(humidityData, sizeof(humidityData), "%f %", humidity);
-    Serial.print("Sending humidity: ");
-    Serial.println(humidityData);
-    mqttClient.publish(outHumidity, humidityData);
-}
-
-//Publish filling level data to MQTT
-void publishFillingLevel(int fillingLevel){
-    snprintf(fillingData, sizeof(fillingData), "%d %", fillingLevel);
-    Serial.print("Sending filling level: ");
-    Serial.println(fillingData);
-    mqttClient.publish(outFilling, fillingData);
-}
-
-//Publish VOC data to MQTT
-void publishVOC(float VOC){
-    snprintf(vocData, sizeof(vocData), "%f", VOC);
-    Serial.print("Sending VOC: ");
-    Serial.println(vocData);
-    mqttClient.publish(outVOC, vocData);
-}
-
-//Publish critical warning to MQTT
-void publishCriticalWarning(boolean warning){
-    sprintf(criticalWarningData, "%i", warning);
-    Serial.print("Sending critical warning: ");
-    Serial.println(criticalWarningData);
-    mqttClient.publish(outCriticalWarning, criticalWarningData);
-}
-*/
-
-/*
-//Adafruit MQTT connect function
-void connectMQTTAdafruit(){
-    mqttAdafruit.connect();
-  if (mqttAdafruit.connected()) {
-    Serial.println("Connected to Adafruit IO-MQTT broker!");
-  } else {
-    Serial.println("Failed to connect to Adafruit IO-MQTT broker!");
-  }
-}
-*/
 void handleFeedData(AdafruitIO_Data *data) {
   Serial.println("Received feed data:");
   Serial.println(data->value());
@@ -162,28 +60,16 @@ void setup() {
   Serial.print("Connecting to Adafruit IO");
   io.connect();
 
-    // set up a message handler for the count feed.
-  // the handleMessage function (defined below)
-  // will be called whenever a message is
-  // received from adafruit io.
-
-    // wait for a connection
+ // wait for Adafruit IO connection
   while(io.status() < AIO_CONNECTED) {
     Serial.print(".");
     delay(500);
   }
-  // we are connected
-  Serial.println();
+  //conncetion status
   Serial.println(io.statusText());
-  //Serial.println("Deine Mudda");
-  //mqttAdafruit.connect();
-  //Serial.println("Dein Vadder");
 
-  //MQTT client
-  //mqttClient.setServer(mqttServer, mqttPort);
-  //mqttClient.setCallback(callback);
-  toggleSwitch->onMessage(handleFeedData);
-  toggleSwitch->get();
+  //toggleSwitch->onMessage(handleFeedData);
+  //toggleSwitch->get();
 }
 
 void loop() {
@@ -191,17 +77,9 @@ void loop() {
   if (!WiFi.isConnected()){
     connectWiFi();
   }
-  io.run();
-  //if (!mqttClient.connected()){
-   // connectMQTT();
-  //}
-  //For Adafruit IO connection
-  //if (!mqttAdafruit.connected()){
-    //connectMQTTAdafruit();
-  //}
 
-  //mqttClient.loop();
-  
+  io.run();
+
   now = millis();
   if (now - last_time > 5000)
   {
@@ -209,23 +87,12 @@ void loop() {
       sensorHumidity = 1.353456836 * random(70.0); //max. Wert random Funktion 70
       sensorVOC = 1.68364967 * random(2000.0);
       sensorFillingLevel = random(100.0); 
-      /*
-      publishTemperature(sensorTemperature);
-      publishHumidity(sensorHumidity);
-      publishVOC(sensorVOC);
-      publishFillingLevel(sensorFillingLevel);
+     
 
-      if(sensorHumidity > limitHumidity || sensorVOC > limitVOC){
-        criticalWarning = true;
-        publishCriticalWarning(criticalWarning);
-      }
-      else{
-        criticalWarning = false;
-        publishCriticalWarning(criticalWarning);
-      }
-*/
-      //fillingLevelAdafruit.publish(sensorFillingLevel);
-      fillingLevelAda->save(sensorFillingLevel);
+      dataFillingLevel->save(sensorFillingLevel);
+      dataHumidity->save(sensorHumidity);
+      dataTemperature->save(sensorTemperature);
+      dataVOC->save(sensorVOC);
 
       last_time = now;
   }
