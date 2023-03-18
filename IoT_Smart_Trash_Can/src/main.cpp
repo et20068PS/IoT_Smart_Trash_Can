@@ -19,10 +19,10 @@ long last_time;
 long now;
 
 AdafruitIO_WiFi io(AIO_USERNAME, AIO_KEY, ssid, password);
-AdafruitIO_Feed *dataFillingLevel = io.feed("fillingLevel");
+AdafruitIO_Feed *dataFillingLevel = io.feed("fill");
 AdafruitIO_Feed *dataHumidity = io.feed("humidity");
 AdafruitIO_Feed *dataTemperature = io.feed("temperature");
-AdafruitIO_Feed *dataVOC = io.feed("VOC");
+AdafruitIO_Feed *dataVOC = io.feed("air");
 
 //Sensor measurement variables
 float sensorTemperature;
