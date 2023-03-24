@@ -113,10 +113,8 @@ void setup() {
     Serial.print(".");
     delay(500);
   }
-  //Adafruit IO conncetion status
   Serial.println();
   Serial.println(io.statusText());
-
   io.run();
 
   //Receive data from Adafruit IO Dashboard
@@ -124,6 +122,10 @@ void setup() {
   dataBucketHeight->get();
   dataSaveEnergy->onMessage(handleFeedData);
   dataSaveEnergy->get();
+
+  Serial.println("Starte VOC Sensor Initialisierungszeit");
+  delay(2* 60 * 1000); //2 minutes for VOC initialization
+  Serial.println("VOC vollständig initialisiert - beginne mit Programmablauf");
 }
 
 void loop() {
@@ -155,7 +157,7 @@ void loop() {
     //When woke up, ESP32 starts from the beginning of the code and reinitializes
     Serial.println("Ich geh schlafen");
     disconnectWiFi();
-    esp_sleep_enable_timer_wakeup(1 * 60 * 1000000); //1 * 60 * 1000000 = 1 minute
+    esp_sleep_enable_timer_wakeup(1 * 6 * 1000000); //1 * 60 * 1000000 = 1 minute
     esp_deep_sleep_start();
 
   }
