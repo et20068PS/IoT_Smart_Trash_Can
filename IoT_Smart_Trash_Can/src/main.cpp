@@ -3,15 +3,13 @@
 #include <WiFi.h>
 #include <AdafruitIO_WiFi.h>
 #include <AdafruitIO_Feed.h>
-
-#include "Adafruit_SHT4x.h"
-#include "Adafruit_SGP40.h"
+#include <Adafruit_SHT4x.h>
+#include <Adafruit_SGP40.h>
 #include <SPI.h>
 #include <Wire.h>
 
 #define echo  19 // Echo Pin
 #define trigger  18 //Trigger-Pin
-float bucket_high = 50.00; // Bucket High
 
 Adafruit_SHT4x sht4 = Adafruit_SHT4x();
 Adafruit_SGP40 sgp;
@@ -51,9 +49,8 @@ int sensorFillingLevel;
 //Limit variables
 float limitHumidity = 50;
 float limitVOC = 3000;
-int bucketHeight = 50;
+float bucketHeight = 50.00;
 boolean criticalWarning = false;
-
 boolean saveEnergy;
 
 //WiFi connect function
@@ -80,13 +77,66 @@ void disconnectWiFi(){
   Serial.println("Disconnected from WiFi network");
 }
 
+
+// read VOC sensor
+int VOC (float t, float rh){
+  return (sgp.measureVocIndex(t, rh));
+}
+
+// read temperature and humidity
+void temp_hum(float *t, float *rh){
+  sensors_event_t humidity, temp; 
+  sht4.getEvent(&humidity, &temp);// update data 
+  *t = temp.temperature;
+  *rh = humidity.relative_humidity;
+}
+
+// initialize VOC sensor with real temperature and humidity data
+void init (float t, float rh){
+  int initVOC = sgp.measureVocIndex(t, rh);
+}
+
+// read ultarsonic sensor and calculate filling level
+int ultrasonic (){
+  long duration = 0;
+  long distance = 0;
+  digitalWrite(trigger, LOW); 
+  delay(5);
+  digitalWrite(trigger, HIGH); //emit an ultrasonic wave
+  delay(10); 
+  digitalWrite(trigger, LOW);
+  duration = pulseIn(echo, HIGH); // record pulses
+  distance = ((duration/2) * 0.03432)+1; // calculate distance with offset 1 cm
+    if (distance > bucketHeight)
+      {
+        return (-1); // distance value invalid
+      }
+    else 
+      {
+      float f_pusage= 100-((distance/bucketHeight)*100); // calculate occupied space
+      f_pusage = round(f_pusage); // round value for return int
+      return (f_pusage);
+      }
+}
+
 //Read actual sensor data
 void readSensors(){
     //generating random sensor data for testing
-    sensorTemperature = 1.353456836 * random(30.0); //max. Wert random Funktion 30 factor 1.353456836 for float generation, random only creates integer
-    sensorHumidity = 1.353456836 * random(70.0); //max. Wert random Funktion 70
-    sensorVOC = 1.68364967 * random(2000.0);
-    sensorFillingLevel = random(100.0); 
+    //sensorTemperature = 1.353456836 * random(30.0); //max. Wert random Funktion 30 factor 1.353456836 for float generation, random only creates integer
+    //sensorHumidity = 1.353456836 * random(70.0); //max. Wert random Funktion 70
+    //sensorVOC = 1.68364967 * random(2000.0);
+    //sensorFillingLevel = random(100.0); 
+  sensorFillingLevel = ultrasonic();
+  Serial.print(sensorFillingLevel); 
+  Serial.println("%");  
+
+  temp_hum(&sensorTemperature, &sensorHumidity);
+  Serial.print("Temperature: "); Serial.print(sensorTemperature); Serial.println(" degrees C");
+  Serial.print("Humidity: "); Serial.print(sensorHumidity); Serial.println("% rH");
+
+  sensorVOC = VOC (sensorTemperature,sensorHumidity);
+  Serial.print("Voc Index: ");
+  Serial.println(sensorVOC);
 }
 
 //Publish data to Adafruit IO
@@ -107,12 +157,9 @@ void handleFeedData(AdafruitIO_Data *data) {
     saveEnergy = data->toBool();
   }
   else if(String(data->feedName()) == "bucketheight"){
-    bucketHeight = data->toInt();
+    bucketHeight = data->toFloat();
   }
 }
-
-
-
 
 void setup()
 {
@@ -140,11 +187,9 @@ void setup()
   dataSaveEnergy->onMessage(handleFeedData);
   dataSaveEnergy->get();
   
-   
-
 if (! sht4.begin()) {
-    Serial.println("Couldn't find SHT40 - Program stops working");
-    while (1) delay(1);
+      Serial.println("Couldn't find SHT40 - Program stops working");
+      while (1) delay(1);
 }
 Serial.println("Found SHT40 sensor");
 
@@ -195,67 +240,17 @@ sht4.setPrecision(SHT4X_HIGH_PRECISION); // get best precision
   }
   
   Serial.println("Starte VOC Sensor Initialisierungszeit");
-  delay(2* 60 * 1000); //2 minutes for VOC initialization
+  for (int i = 0; i<= 200 ;i++)
+  {
+    temp_hum(&sensorTemperature, &sensorHumidity);
+    init (sensorTemperature,sensorHumidity);
+    delay(1000);
+  }
   Serial.println("VOC vollständig initialisiert - beginne mit Programmablauf");
 }
 
-
-  
-int VOC (float t, float rh)
-{
-return (sgp.measureVocIndex(t, rh));
-}
-
-void temp_hum(float *t, float *rh)
-{
-sensors_event_t humidity, temp; 
-sht4.getEvent(&humidity, &temp);// update data 
-*t = temp.temperature;
-*rh = humidity.relative_humidity;
-}
-
-int ultrasonic ()
-{
-long duration = 0;
-long distance = 0;
-digitalWrite(trigger, LOW); 
-delay(5);
-digitalWrite(trigger, HIGH); //emit an ultrasonic wave
-delay(10); 
-digitalWrite(trigger, LOW);
-duration = pulseIn(echo, HIGH); // record pulses
-distance = ((duration/2) * 0.03432)+1; // calculate distance with offset 1 cm
-if (distance > bucket_high)
-    {
-      return (-1); // distance value invalid
-    }
-    else 
-    {
-     float f_pusage= 100-((distance/bucket_high)*100); // calculate occupied space
-     f_pusage = round(f_pusage); // round value for return int
-     return (f_pusage);
-    }
-}
 void loop()
 {
-int32_t sensorFillingLevel = 0;
-sensorFillingLevel = ultrasonic();
-Serial.print(sensorFillingLevel); 
-Serial.println("%");  
-
-float sensorTemperature = 0;
-float sensorHumidity = 0;
-temp_hum(&sensorTemperature, &sensorHumidity);
-Serial.print("Temperature: "); Serial.print(sensorTemperature); Serial.println(" degrees C");
-Serial.print("Humidity: "); Serial.print(sensorHumidity); Serial.println("% rH");
-
-int32_t sensorVOC = 0;
-sensorVOC = VOC (sensorTemperature,sensorHumidity);
-Serial.print("Voc Index: ");
-Serial.println(sensorVOC);
-
-delay(1000);
-
  //Must be called frequently to keep Adafruit IO connection alive
   io.run();
 
@@ -283,8 +278,7 @@ delay(1000);
     //When woke up, ESP32 starts from the beginning of the code and reinitializes
     Serial.println("Ich geh schlafen");
     disconnectWiFi();
-    esp_sleep_enable_timer_wakeup(1 * 6 * 1000000); //1 * 60 * 1000000 = 1 minute
+    esp_sleep_enable_timer_wakeup(1 * 60 * 1000000); //1 * 60 * 1000000 = 1 minute
     esp_deep_sleep_start();
-
-
+  }
 }
