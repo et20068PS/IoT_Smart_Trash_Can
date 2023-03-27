@@ -22,7 +22,7 @@ Adafruit_SGP40 sgp;
 //WiFi connection variables
 const char* ssid = "LenovoPS";
 const char* password =  "#Lu89832";
-
+// Haaaaaloo
 //Timer variables
 long last_time;
 long now;
