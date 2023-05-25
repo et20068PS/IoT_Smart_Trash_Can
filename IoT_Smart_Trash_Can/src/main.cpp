@@ -15,14 +15,14 @@ Adafruit_SHT4x sht4 = Adafruit_SHT4x();
 Adafruit_SGP40 sgp;
 
 #define AIO_USERNAME  "SmartTrashCan"
-#define AIO_KEY       "aio_UJVn26FOOOAQZAqOZlDbZWO54NXE"
+#define AIO_KEY       "aio_HqEu17NvU5jfI8KRtNiY9WRJDfXh"
 #define AIO_SERVER      "io.adafruit.com"
 #define AIO_SERVERPORT  1883
 
 //WiFi connection variables
-const char* ssid = "LenovoPS";
-const char* password =  "#Lu89832";
-
+const char* ssid = "WLAN Lutz";
+const char* password =  "GottIstSoGut!";
+// Haaaaaloo
 //Timer variables
 long last_time;
 long now;
@@ -35,6 +35,8 @@ AdafruitIO_Feed *dataFillingLevel = io.feed("fill");
 AdafruitIO_Feed *dataHumidity = io.feed("humidity");
 AdafruitIO_Feed *dataTemperature = io.feed("temperature");
 AdafruitIO_Feed *dataVOC = io.feed("air");
+AdafruitIO_Feed *dataEmptyTrash = io.feed("emptytrash");
+
 
 //Adafruit Topics for remote control
 AdafruitIO_Feed *dataBucketHeight = io.feed("bucketheight");
@@ -45,6 +47,7 @@ float sensorTemperature;
 float sensorHumidity;
 float sensorVOC;
 int sensorFillingLevel;
+int outputEmptyTrash;
 
 //Limit variables
 float limitHumidity = 50;
@@ -139,12 +142,32 @@ void readSensors(){
   Serial.println(sensorVOC);
 }
 
+//calculate whether garbage should be emptied
+void calculateEmptyTrash(){
+  if(sensorFillingLevel > 74){
+    outputEmptyTrash = 1;
+  }
+  else if (sensorHumidity > 85){
+    outputEmptyTrash = 1;
+  }
+  else if(sensorVOC > 300){
+    outputEmptyTrash = 1;
+  }
+  else if((sensorTemperature > 27) && (sensorHumidity > 80)){
+    outputEmptyTrash = 1;
+  }
+  else {
+    outputEmptyTrash = 0;
+  }
+}
+
 //Publish data to Adafruit IO
 void publishData(){
     dataFillingLevel->save(sensorFillingLevel);
     dataHumidity->save(sensorHumidity);
     dataTemperature->save(sensorTemperature);
     dataVOC->save(sensorVOC);
+    dataEmptyTrash->save(outputEmptyTrash);
 }
 
 //Function to process received data from Adafruit IO Dashboard
@@ -262,6 +285,7 @@ void loop()
       }
 
       readSensors();
+      calculateEmptyTrash();
       //publishing sensor data to Adafruit IO
       publishData();
 
@@ -270,6 +294,7 @@ void loop()
   else if(saveEnergy){
 
     readSensors();
+    calculateEmptyTrash();
     //publishing sensor data to Adafruit IO
     publishData();
 
