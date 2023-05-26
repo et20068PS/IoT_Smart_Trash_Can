@@ -15,7 +15,7 @@ Adafruit_SHT4x sht4 = Adafruit_SHT4x();
 Adafruit_SGP40 sgp;
 
 #define AIO_USERNAME  "SmartTrashCan"
-#define AIO_KEY       "aio_HqEu17NvU5jfI8KRtNiY9WRJDfXh"
+#define AIO_KEY       "Replace with your specific Adafruit IO Key"
 #define AIO_SERVER      "io.adafruit.com"
 #define AIO_SERVERPORT  1883
 
